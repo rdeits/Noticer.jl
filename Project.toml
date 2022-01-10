@@ -1,0 +1,16 @@
+name = "Noticer"
+uuid = "b8a7ced5-48ff-4952-b167-8492001704f6"
+authors = ["Robin Deits <robin.deits@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+PuzzleTools = "9639878e-158e-40c2-b293-0fbc53061c4d"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
