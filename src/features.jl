@@ -46,17 +46,23 @@ const SCRABBLE_SCORES = Dict{Char, Int}(
 const VOWELS = Set{Char}("aeiouy")
 const CONSONANTS = Set{Char}("bcdfghjklmnpqrstvwxyz")
 
-function num_unique_vowels(word)
-    count(in(word), VOWELS)
-end
+num_unique_vowels(word) = count(in(word), VOWELS)
 
-function num_unique_consonants(word)
-    count(in(word), CONSONANTS)
-end
+num_unique_consonants(word) = count(in(word), CONSONANTS)
 
-function num_unique_letters(word)
-    count(in(word), 'a':'z')
-end
+num_unique_letters(word) = count(in(word), 'a':'z')
+
+num_double_letters(word) = count(i -> word[i] == word[i + 1], 1:(length(word) - 1))
+
+num_alpha_bigrams(word) = count(i -> word[i] < word[i + 1], 1:(length(word) - 1))
+
+num_reverse_alpha_bigrams(word) = count(i -> word[i] > word[i + 1], 1:(length(word) - 1))
+
+num_sequential_bigrams(word) = count(i -> word[i] + 1 == word[i + 1], 1:(length(word) - 1))
+
+num_reverse_sequential_bigrams(word) = count(i -> word[i] - 1 == word[i + 1], 1:(length(word) - 1))
+
+num_cardinal_directions(word) = count(in(('n', 'e', 's', 'w')), word)
 
 function all_features()
     features = Feature[]
@@ -67,6 +73,12 @@ function all_features()
     push!(features, Feature(w -> num_unique_vowels(w), "Number of unique vowels"))
     push!(features, Feature(w -> num_unique_consonants(w), "Number of unique consonants"))
     push!(features, Feature(w -> num_unique_letters(w), "Number of unique letters"))
+    push!(features, Feature(w -> num_double_letters(w), "Number of double letters"))
+    push!(features, Feature(w -> num_alpha_bigrams(w), "Number of alphabetical bigrams"))
+    push!(features, Feature(w -> num_reverse_alpha_bigrams(w), "Number of reverse alphabetical bigrams"))
+    push!(features, Feature(w -> num_sequential_bigrams(w), "Number of sequential bigrams"))
+    push!(features, Feature(w -> num_reverse_sequential_bigrams(w), "Number of reverse sequential bigrams"))
+    push!(features, Feature(w -> num_cardinal_directions(w), "Number of cardinal directions (NESW)"))
     features
 end
 
