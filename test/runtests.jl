@@ -17,8 +17,11 @@ const features = all_features()
 const model = train(features, words)
 
 const PUZZLES_FOLDER = "puzzles"
-for file in Base.Filesystem.readdir(PUZZLES_FOLDER)
-    if endswith(file, ".jl")
-        include(joinpath(PUZZLES_FOLDER, file))
+
+@testset "Puzzles" begin
+    for file in Base.Filesystem.readdir(PUZZLES_FOLDER)
+        if endswith(file, ".jl")
+            include(joinpath(PUZZLES_FOLDER, file))
+        end
     end
 end

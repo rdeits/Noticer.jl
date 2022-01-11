@@ -6,7 +6,7 @@ end
 
 function train(features::AbstractVector{Feature}, corpus)
     result = Model(features, [Float64[] for _ in features], length(corpus))
-    for (feature, frequencies) in zip(result.features, result.frequencies)
+    @showprogress for (feature, frequencies) in zip(result.features, result.frequencies)
         for word in corpus
             output = feature.f(word)
             if output + 1 > length(frequencies)

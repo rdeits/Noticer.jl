@@ -9,5 +9,4 @@
 
     results = evaluate(model, ["balked", "barspoon", "highnoon", "klutzy", "onyx", "posted"])
     @test description(first(results)) == "Number of reverse sequential bigrams"
-
 end
