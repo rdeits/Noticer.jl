@@ -43,9 +43,23 @@ const SCRABBLE_SCORES = Dict{Char, Int}(
     'z' => 10,
     )
 
-scrabble_score(char::Char) = SCRABBLE_SCORES[char]
+struct PreprocessedWord
+    word::String
+    characters::Vector{Char}
+    tallies::LetterTallies
 
-scrabble_score(word::String) = sum(scrabble_score, word)
+    PreprocessedWord(word) = new(word, collect(word), LetterTallies(word))
+end
+
+Base.length(w::PreprocessedWord) = length(w.characters)
+Base.getindex(w::PreprocessedWord, i) = getindex(w.characters, i)
+Base.firstindex(w::PreprocessedWord) = firstindex(w.characters)
+Base.lastindex(w::PreprocessedWord) = lastindex(w.characters)
+LetterTallies(w::PreprocessedWord) = w.tallies
+Base.iterate(w::PreprocessedWord, args...) = iterate(w.characters, args...)
+Base.reverse(w::PreprocessedWord) = PreprocessedWord(reverse(w.word))
+
+scrabble_score(word) = sum(c -> SCRABBLE_SCORES[c], word)
 
 num_unique_vowels(word) = count(in(word), VOWELS)
 
@@ -130,6 +144,14 @@ function all_features()
         push!(features, Feature(w -> count(isequal(char), w), "Number of occurrences of '$char'"))
         # push!(features, Feature(w -> char in w, "Contains '$char'"))
     end
+
+    for char in 'a':'z'
+        for i in 1:5
+            push!(features, Feature(w -> length(w) >= i && w[i] == char, "Has '$char' at index $i"))
+            push!(features, Feature(w -> length(w) >= i && w[end - i + 1] == char, "Has '$char' at index $i from the end"))
+        end
+    end
+
     push!(features, Feature(scrabble_score, "Scrabble score"))
     push!(features, Feature(num_vowels, "Number of vowels"))
     push!(features, Feature(num_consonants, "Number of consonants"))
