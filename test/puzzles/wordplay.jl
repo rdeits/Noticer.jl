@@ -7,7 +7,7 @@
     @test description(first(evaluate(model, ["ample", "adenoid", "music", "fifa"]))) == "Is a hill word"
 
     # Set 2
-    # @test best_feature(["peeped", "isseis", "fee", "acacia", "salsas", "arrear"]).description == "is a pyramid word"
+    @test description(first(evaluate(model, ["peeped", "isseis", "fee", "acacia", "salsas", "arrear"]))) == "Is a pyramid word"
 
     # Set 3
     @test description(first(evaluate(model, ["skort", "sporty", "yolks", "peccadillo", "unknot", "rosy"]))) == "Is a valley word"

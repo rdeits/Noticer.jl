@@ -83,6 +83,18 @@ num_reverse_sequential_bigrams(word) = count(i -> word[i] - 1 == word[i + 1], 1:
 
 num_cardinal_directions(word) = count(in(('n', 'e', 's', 'w')), word)
 
+function is_sequential(a::AbstractArray)
+    for i in 1:(length(a) - 1)
+        a[i+1] == a[i] + 1 || return false
+    end
+    true
+end
+
+"""
+Letter tally is 1, 2, 3, etc.
+"""
+is_pyramid(word) = is_sequential(sort(filter(!iszero, LetterTallies(word).tallies)))
+
 """
 Letters are alpha, then reverse alpha
 """
@@ -133,6 +145,10 @@ has_transdeletion(t::LetterTallies) = any(c -> has_transdeletion(t, c), 'a':'z')
 
 is_palindrome(word) = word == reverse(word)
 
+num_repeated_letters(word) = count(>(1), LetterTallies(word).tallies)
+
+num_letters_repeated_n_times(word, n) = count(==(n), LetterTallies(word).tallies)
+
 struct Feature
     f::Function
     description::String
@@ -164,18 +180,38 @@ function all_features()
     push!(features, Feature(num_sequential_bigrams, "Number of sequential bigrams"))
     push!(features, Feature(num_reverse_sequential_bigrams, "Number of reverse sequential bigrams"))
     push!(features, Feature(num_cardinal_directions, "Number of cardinal directions (NESW)"))
+    push!(features, Feature(num_repeated_letters, "Number of repeated letters"))
+    for n in 2:3
+        push!(features, Feature("Number of letters repeated at least $n times") do word
+            count(>=(n), LetterTallies(word).tallies)
+        end)
+    end
+    push!(features, Feature("Number of repeated vowels") do word
+        tallies = LetterTallies(word).tallies
+        count(VOWELS) do char
+            tallies[char - 'a' + 1] > 1
+        end
+    end)
+    push!(features, Feature("Number of repeated consonants") do word
+        tallies = LetterTallies(word).tallies
+        count(CONSONANTS) do char
+            tallies[char - 'a' + 1] > 1
+        end
+    end)
+
     push!(features, Feature(is_palindrome, "Is a palindrome"))
     push!(features, Feature(is_hill, "Is a hill word"))
     push!(features, Feature(is_valley, "Is a valley word"))
+    push!(features, Feature(is_pyramid, "Is a pyramid word"))
 
-    # for char in 'a':'z'
-    #     push!(features, Feature(w -> has_transaddition(LetterTallies(w), char), "Has a transaddition with letter '$char'"))
-    # end
+    for char in 'a':'z'
+        push!(features, Feature(w -> has_transaddition(LetterTallies(w), char), "Has a transaddition with letter '$char'"))
+    end
     push!(features, Feature(w -> has_transaddition(LetterTallies(w)), "Has a 1-letter transaddition"))
 
-    # for char in 'a':'z'
-    #     push!(features, Feature(w -> has_transdeletion(LetterTallies(w), char), "Has a transdeletion with letter '$char'"))
-    # end
+    for char in 'a':'z'
+        push!(features, Feature(w -> has_transdeletion(LetterTallies(w), char), "Has a transdeletion with letter '$char'"))
+    end
     push!(features, Feature(w -> has_transdeletion(LetterTallies(w)), "Has a 1-letter transdeletion"))
 
     features

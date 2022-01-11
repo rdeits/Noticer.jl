@@ -23,9 +23,8 @@
         f3 = best_feature(["lowered", "levitate", "leveraged", "lynx", "lightly", "lengths", "legislator"])
         @test f3 == "Has 'l' at index 1"
 
-        # # Set 4
-        # f4 = best_feature(["levitate", "inanimate", "sizes", "lightly", "crocodile", "legislator", "carousels"], 1)
-        # @test f4.description== "contains a repeated consonant"
+        # Set 4
+        @test "Number of repeated consonants" in description.(evaluate(model, ["levitate", "inanimate", "sizes", "lightly", "crocodile", "legislator", "carousels"])[1:2])
 
         # # Intersection
         # checks = (f1, f2, f3, f4, word -> length(word) == 9)
@@ -61,9 +60,9 @@
         f3 = best_feature(["thumbtacks", "monologue", "testimony", "camel", "meteorology", "trampoline", "achievement"])
         @test f3 == "Number of occurrences of 'm'"
 
-        # # Set 4
-        # f4 = best_feature(["monologue", "frigidities", "satirizing", "meteorology", "avalance", "achievement", "constitute"])
-        # @test f4.description == "has 1 letters repeated at least 3 times each"
+        # Set 4
+        f4 = best_feature(["monologue", "frigidities", "satirizing", "meteorology", "avalance", "achievement", "constitute"])
+        @test f4 == "Number of letters repeated at least 3 times"
     end
 
     @testset "diagram 4" begin

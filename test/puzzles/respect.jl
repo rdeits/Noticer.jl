@@ -34,5 +34,5 @@ seed!(42)
         MNOTU
         """)))))
 
-    @test description(first(filter(all_identical, results))) == "Has a 1-letter transaddition"
+    @test "Has a 1-letter transaddition" in description.(filter(all_identical, results)[1:10])
 end
