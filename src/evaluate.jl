@@ -47,8 +47,10 @@ end
 function evaluate(model::Model, samples)
     results = EvaluationResult[]
     sizehint!(results, length(model.features))
-    for (feature, frequencies) in zip(model.features, model.frequencies)
-        counts = zeros(Int, length(frequencies))
+    length_range = minimum(length, samples):maximum(length, samples)
+    corpus_size = count(w -> length(w) in length_range, model.corpus)
+    for (feature, feature_freq) in zip(model.features, frequencies(model, length_range))
+        counts = zeros(Int, length(feature_freq))
         for word in samples
             word = normalize(word)
             output = feature.f(word)
@@ -56,14 +58,14 @@ function evaluate(model::Model, samples)
                 old_size = length(counts)
                 resize!(counts, output + 1)
                 counts[old_size:end] .= 0
-                resize!(frequencies, output + 1)
+                resize!(feature_freq, output + 1)
                 # If we've never observed this value in the corpus, then set its probability to a small but nonzero value.
-                frequencies[old_size:end] .= 1 / model.corpus_size
+                feature_freq[old_size:end] .= 1 / corpus_size
             end
             counts[output + 1] += 1
         end
-        normalize!(frequencies, 1)
-        push!(results, EvaluationResult(feature, ChisqTest(counts, frequencies)))
+        normalize!(feature_freq, 1)
+        push!(results, EvaluationResult(feature, ChisqTest(counts, feature_freq)))
     end
     sort!(results)
     results

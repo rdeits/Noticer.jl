@@ -10,10 +10,10 @@ export all_features,
        description,
        evaluate,
        expected,
+       Model,
        observed,
        perfect_matches,
-       pvalue,
-       train
+       pvalue
 
 include("tallies.jl")
 include("features.jl")

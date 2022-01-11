@@ -10,6 +10,7 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 PuzzleTools = "9639878e-158e-40c2-b293-0fbc53061c4d"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
