@@ -9,5 +9,5 @@
                       "gleemen",
                       "hansardise",
                       "interpose"])
-    @test description(first(perfect_matches(results))) == "Number of cardinal directions (NESW)"
+    @test description(first(results)) == "Number of cardinal directions (NESW)"
 end

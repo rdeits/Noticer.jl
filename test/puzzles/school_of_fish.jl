@@ -58,5 +58,5 @@
         cleaned
         piper
         """))
-    @test description(first(perfect_matches(results))) == "Has a 1-letter transdeletion"
+    @test description(first(filter(all_identical, results))) == "Has a 1-letter transdeletion"
 end

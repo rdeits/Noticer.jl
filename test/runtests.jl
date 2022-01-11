@@ -14,7 +14,7 @@ open("/usr/share/dict/words") do f
 end
 
 const features = all_features()
-const model = train(features, words)
+const model = Model(features, words)
 
 const PUZZLES_FOLDER = "puzzles"
 

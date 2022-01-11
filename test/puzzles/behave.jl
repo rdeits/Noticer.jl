@@ -2,7 +2,7 @@
 
 @testset "behave" begin
     results = evaluate(model, ["annieproulx", "commutative", "hugoweaving", "mountaindew", "mozambique", "sequoia"])
-    @test "Number of unique vowels" in description.(results[1:2])
+    @test description(first(results)) == "Number of unique vowels"
 
     results = evaluate(model, ["almost", "biopsy", "chimp", "films", "ghost", "tux"])
     @test description(first(results)) == "Number of reverse alphabetical bigrams"

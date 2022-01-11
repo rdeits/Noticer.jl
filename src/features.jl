@@ -128,6 +128,7 @@ function all_features()
     features = Feature[]
     for char in 'a':'z'
         push!(features, Feature(w -> count(isequal(char), w), "Number of occurrences of '$char'"))
+        # push!(features, Feature(w -> char in w, "Contains '$char'"))
     end
     push!(features, Feature(scrabble_score, "Scrabble score"))
     push!(features, Feature(num_vowels, "Number of vowels"))

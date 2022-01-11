@@ -1,17 +1,44 @@
-struct EvaluationResult
-    feature::Feature
-    test::PowerDivergenceTest
+function js_divergence(p, q)
+    m = 0.5 .* p .+ 0.5 .* q
+    0.5 * (kldivergence(p, m) + kldivergence(q, m))
 end
 
-observed(r::EvaluationResult) = vec(r.test.observed)
-expected(r::EvaluationResult) = vec(r.test.expected)
-description(r::EvaluationResult) = r.feature.description
-is_perfect_match(r::EvaluationResult) = count(!iszero, observed(r)) == 1
+struct FeatureResult
+    feature::Feature
+    observed::Vector{Float64}
+    expected::Vector{Float64}
+    divergence::Float64
 
-HypothesisTests.pvalue(r::EvaluationResult) = pvalue(r.test)
+    FeatureResult(feature::Feature, observed, expected) = new(feature, observed, expected, js_divergence(observed, expected))
+end
 
-Base.isless(r1::EvaluationResult, r2::EvaluationResult) =
-    pvalue(r1) < pvalue(r2)
+
+observed(r::FeatureResult) = vec(r.observed)
+expected(r::FeatureResult) = vec(r.expected)
+description(r::FeatureResult) = r.feature.description
+
+all_identical(r::FeatureResult) = count(!iszero, observed(r)) == 1
+
+# function histogram_median(frequencies)::Int
+#     @assert sum(frequencies) ≈ 1
+#     cumulative_frequency = zero(eltype(frequencies))
+#     for (i, individual_frequency) in enumerate(frequencies)
+#         cumulative_frequency += individual_frequency
+#         if cumulative_frequency >= 0.5
+#             return i
+#         end
+#     end
+# end
+
+function all_unusual(r::FeatureResult)
+    _, mode_index = findmax(expected(r))
+    observed(r)[mode_index] == 0
+end
+
+divergence(r::FeatureResult) = r.divergence
+
+Base.isless(r1::FeatureResult, r2::FeatureResult) =
+    divergence(r1) < divergence(r2)
 
 # Inspired by BenchmarkTools.jl (although our implementation is slightly different)
 function asciihist(bins, height=1)
@@ -19,16 +46,16 @@ function asciihist(bins, height=1)
     join((i -> histbars[i]).(1 .+ round.(Int, bins ./ maximum(bins) .* (length(histbars) - 1))))
 end
 
-function Base.show(io::IO, r::EvaluationResult)
-    print(io, "EvaluationResult(\n\t$(r.feature.description), p=$(@sprintf("%.2g", pvalue(r))),\n\tobs: $(asciihist(observed(r))),\n\texp: $(asciihist(expected(r))))")
+function Base.show(io::IO, r::FeatureResult)
+    print(io, "FeatureResult(\n\t$(r.feature.description), KL=$(@sprintf("%.2g", divergence(r))),\n\tobs: $(asciihist(observed(r))),\n\texp: $(asciihist(expected(r))))")
 end
 
-function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{EvaluationResult})
+function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{FeatureResult})
     print(io, """
         <table>
             <tr>
                 <th>Description</th>
-                <th>P value</th>
+                <th>Divergence</th>
                 <th>Observed</th>
                 <th>Expected</td>
             </tr>""")
@@ -36,7 +63,7 @@ function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{Evaluation
         print(io, """
             <tr>
                 <td>$(description(result))</td>
-                <td>$(@sprintf("%.2g", pvalue(result)))</td>
+                <td>$(@sprintf("%.2g", divergence(result)))</td>
                 <td><pre>$(asciihist(observed(result)))</pre></td>
                 <td><pre>$(asciihist(expected(result)))</pre></td>
             </tr>""")
@@ -45,30 +72,100 @@ function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{Evaluation
 end
 
 function evaluate(model::Model, samples)
-    results = EvaluationResult[]
+    results = FeatureResult[]
     sizehint!(results, length(model.features))
     length_range = minimum(length, samples):maximum(length, samples)
-    corpus_size = count(w -> length(w) in length_range, model.corpus)
     for (feature, feature_freq) in zip(model.features, frequencies(model, length_range))
-        counts = zeros(Int, length(feature_freq))
+        observed = zeros(length(feature_freq))
         for word in samples
             word = normalize(word)
             output = feature.f(word)
-            if output + 1 > length(counts)
-                old_size = length(counts)
-                resize!(counts, output + 1)
-                counts[old_size:end] .= 0
+            if output + 1 > length(observed)
+                old_size = length(observed)
+                resize!(observed, output + 1)
+                observed[old_size:end] .= 0
                 resize!(feature_freq, output + 1)
-                # If we've never observed this value in the corpus, then set its probability to a small but nonzero value.
-                feature_freq[old_size:end] .= 1 / corpus_size
+                feature_freq[(old_size + 1):end] .= 0
             end
-            counts[output + 1] += 1
+            observed[output + 1] += 1
         end
-        normalize!(feature_freq, 1)
-        push!(results, EvaluationResult(feature, ChisqTest(counts, feature_freq)))
+        normalize!(observed, 1)
+        push!(results, FeatureResult(feature, observed, feature_freq))
     end
-    sort!(results)
+    sort!(results; rev=true)
     results
 end
 
-perfect_matches(results::AbstractVector{EvaluationResult}) = filter(is_perfect_match, results)
+struct Report
+    results::Vector{FeatureResult}
+    identical_matches::Vector{FeatureResult}
+    unusual_matches::Vector{FeatureResult}
+
+    function Report(results::AbstractVector{FeatureResult})
+        sort!(results; rev=true)
+        new(results, filter(all_identical, results), filter(all_unusual, results))
+    end
+end
+
+function Base.show(io::IO, ::MIME"text/html", report::Report)
+    print(io, """
+        <table>
+            <tr>
+                <th colspan="4">All Features</th>
+            </tr>
+            <tr>
+                <th>Description</th>
+                <th>Divergence</th>
+                <th>Observed</th>
+                <th>Expected</td>
+            </tr>""")
+    for result in Base.Iterators.take(report.results, 10)
+        print(io, """
+            <tr>
+                <td>$(description(result))</td>
+                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td><pre>$(asciihist(observed(result)))</pre></td>
+                <td><pre>$(asciihist(expected(result)))</pre></td>
+            </tr>""")
+    end
+    print(io, """
+            <tr>
+                <th colspan="4">Identical Matches</th>
+            </tr>
+            <tr>
+                <th>Description</th>
+                <th>Divergence</th>
+                <th>Observed</th>
+                <th>Expected</td>
+            </tr>""")
+    for result in Base.Iterators.take(report.identical_matches, 10)
+        print(io, """
+            <tr>
+                <td>$(description(result))</td>
+                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td><pre>$(asciihist(observed(result)))</pre></td>
+                <td><pre>$(asciihist(expected(result)))</pre></td>
+            </tr>""")
+    end
+    print(io, """
+            <tr>
+                <th colspan="4">Unusual Matches</th>
+            </tr>
+            <tr>
+                <th>Description</th>
+                <th>Divergence</th>
+                <th>Observed</th>
+                <th>Expected</td>
+            </tr>""")
+    for result in Base.Iterators.take(report.unusual_matches, 10)
+        print(io, """
+            <tr>
+                <td>$(description(result))</td>
+                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td><pre>$(asciihist(observed(result)))</pre></td>
+                <td><pre>$(asciihist(expected(result)))</pre></td>
+            </tr>""")
+    end
+
+    print(io, "</table>")
+end

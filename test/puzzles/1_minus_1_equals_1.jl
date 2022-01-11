@@ -16,5 +16,5 @@
         SIXTEENS
         BOWMEN
         """))
-    @test description(first(perfect_matches(results))) == "Has a 1-letter transdeletion"
+    @test "Has a 1-letter transdeletion" in description.(Base.Iterators.take(filter(all_identical, results), 2))
 end

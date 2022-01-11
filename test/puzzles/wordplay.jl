@@ -16,7 +16,7 @@
     @test description(first(evaluate(model, ["testset", "lol", "tenet", "malayalam"]))) == "Is a palindrome"
 
     # Set 5
-    @test "Number of double letters" in description.(evaluate(model, ["hitchhiker", "kaashoek", "jellystone", "kierkegaard", "metallica", "maastrict", "menschheit"])[1:3])
+    @test description(first(filter(all_unusual, evaluate(model, ["hitchhiker", "kaashoek", "jellystone", "kierkegaard", "metallica", "maastrict", "menschheit"])))) == "Number of double letters"
 
     # Set 6
     @test description(first(evaluate(model, ["aime", "eye", "eerie", "riaa", "oahu", "oeis"]))) == "Number of consonants"

@@ -7,6 +7,5 @@
         replace(lowercase(w), r"[^a-z]" => "")
     end
     results = evaluate(model, clues)
-    @test description(first(results))== "Number of occurrences of 'f'"
-    @test all(r -> !isnan(pvalue(r.test)), results)
+    @test description(first(results)) == "Number of occurrences of 'f'"
 end

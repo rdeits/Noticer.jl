@@ -20,13 +20,7 @@ function count_frequencies(func::F, corpus, length_range::UnitRange) where {F}
             if output + 1 > length(frequencies)
                 prev_size = length(frequencies)
                 resize!(frequencies, output + 1)
-
-                # This looks liike a bug: we're initializing the counts to 1
-                # instead of 0. It's intentional, because the χ² statistic
-                # becomes NaN for expected frequencies of exactly zero. By
-                # initializing the count to 1 we ensure that all slots have a
-                # small but nonzero exepcted frequency.
-                frequencies[(prev_size + 1):end] .= 1
+                frequencies[(prev_size + 1):end] .= 0
             end
             frequencies[output + 1] += 1
         end
