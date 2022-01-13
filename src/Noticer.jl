@@ -1,12 +1,12 @@
 module Noticer
 
-using LinearAlgebra: normalize!
-# using HypothesisTests: HypothesisTests, ChisqTest, pvalue, PowerDivergenceTest
+using LinearAlgebra: LinearAlgebra, normalize!
 using StatsBase: kldivergence
 using Statistics: median
 using Printf: @sprintf
 using StaticArrays: SVector, setindex
 using ProgressMeter: @showprogress
+using DelimitedFiles: readdlm
 
 export Model,
        Report,

@@ -1,5 +1,5 @@
 function normalize(phrase)
-    replace(lowercase(phrase), r"[^a-z ]" => "")
+    replace(lowercase(phrase), r"[^a-z]" => "")
 end
 
 const WORDS = Set{String}(normalize.(open(readlines, joinpath(@__DIR__, "../data/113809of.fic"))))
@@ -43,6 +43,11 @@ const SCRABBLE_SCORES = Dict{Char, Int}(
     'z' => 10,
     )
 
+const ELEMENT_DATA = readdlm(joinpath(@__DIR__, "..", "data", "elements.tsv"), '\t', String, skipstart=1)
+const ELEMENTAL_SYMBOLS = lowercase.(strip.(ELEMENT_DATA[:,2]))
+const STATES_DATA = readdlm(joinpath(@__DIR__, "..", "data", "states.tsv"), '\t', String, skipstart=1)
+const STATE_ABBREVIATIONS = strip.(lowercase.(STATES_DATA[:,2]))
+
 struct PreprocessedWord
     word::String
     characters::Vector{Char}
@@ -58,6 +63,8 @@ Base.lastindex(w::PreprocessedWord) = lastindex(w.characters)
 LetterTallies(w::PreprocessedWord) = w.tallies
 Base.iterate(w::PreprocessedWord, args...) = iterate(w.characters, args...)
 Base.reverse(w::PreprocessedWord) = PreprocessedWord(reverse(w.word))
+Base.occursin(x, w::PreprocessedWord) = occursin(x, w.word)
+Base.count(r::AbstractPattern, w::PreprocessedWord) = count(r, w.word)
 
 scrabble_score(word) = sum(c -> SCRABBLE_SCORES[c], word)
 
@@ -149,10 +156,19 @@ num_repeated_letters(word) = count(>(1), LetterTallies(word).tallies)
 
 num_letters_repeated_n_times(word, n) = count(==(n), LetterTallies(word).tallies)
 
+parenwrap(s) = "($s)"
+const SINGLE_ELEMENT_REGEX = Regex("$(join((parenwrap(s) for s in ELEMENTAL_SYMBOLS), '|'))")
+const ENTIRELY_ELEMENTS_REGEX = Regex("^($(join((parenwrap(s) for s in ELEMENTAL_SYMBOLS), '|')))*\$")
+
+const SINGLE_STATE_REGEX = Regex("$(join((parenwrap(s) for s in STATE_ABBREVIATIONS), '|'))")
+const ENTIRELY_STATES_REGEX = Regex("^($(join((parenwrap(s) for s in STATE_ABBREVIATIONS), '|')))*\$")
+
 struct Feature
     f::Function
     description::String
 end
+
+description(feature::Feature) = feature.description
 
 function all_features()
     features = Feature[]
@@ -161,12 +177,29 @@ function all_features()
         # push!(features, Feature(w -> char in w, "Contains '$char'"))
     end
 
-    for char in 'a':'z'
-        for i in 1:5
-            push!(features, Feature(w -> length(w) >= i && w[i] == char, "Has '$char' at index $i"))
-            push!(features, Feature(w -> length(w) >= i && w[end - i + 1] == char, "Has '$char' at index $i from the end"))
-        end
+    for i in 1:5
+        push!(features, Feature("Character at index $i") do word
+            if length(word) >= i
+                word[i] - 'a' + 1
+            else
+                0
+            end
+        end)
+        push!(features, Feature("Character at index $i from the end") do word
+            if length(word) >= i
+                word[end - i + 1] - 'a' + 1
+            else
+                0
+            end
+        end)
     end
+
+    # for char in 'a':'z'
+    #     for i in 1:5
+    #         push!(features, Feature(w -> length(w) >= i && w[i] == char, "Has '$char' at index $i"))
+    #         push!(features, Feature(w -> length(w) >= i && w[end - i + 1] == char, "Has '$char' at index $i from the end"))
+    #     end
+    # end
 
     push!(features, Feature(scrabble_score, "Scrabble score"))
     push!(features, Feature(num_vowels, "Number of vowels"))
@@ -203,6 +236,11 @@ function all_features()
     push!(features, Feature(is_hill, "Is a hill word"))
     push!(features, Feature(is_valley, "Is a valley word"))
     push!(features, Feature(is_pyramid, "Is a pyramid word"))
+
+    push!(features, Feature(word -> occursin(ENTIRELY_ELEMENTS_REGEX, word), "Can be completely broken down into chemical element symbols"))
+    push!(features, Feature(word -> occursin(ENTIRELY_STATES_REGEX, word), "Can be completely broken down into US state abbreviations"))
+    push!(features, Feature(word -> count(SINGLE_STATE_REGEX, word), "Number of US state abbreviations"))
+    push!(features, Feature(word -> count(SINGLE_ELEMENT_REGEX, word), "Number of chemical element symbols"))
 
     for char in 'a':'z'
         push!(features, Feature(w -> has_transaddition(LetterTallies(w), char), "Has a transaddition with letter '$char'"))
