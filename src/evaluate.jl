@@ -1,12 +1,3 @@
-using Distributions: Multinomial, pdf
-using HypothesisTests: HypothesisTests, ChisqTest, pvalue, PowerDivergenceTest
-using Combinatorics: multiexponents
-
-function js_divergence(p, q)
-    m = 0.5 .* p .+ 0.5 .* q
-    0.5 * (kldivergence(p, m) + kldivergence(q, m))
-end
-
 function multinomial_exact_test(dist::Multinomial, observed_counts::AbstractVector{<:Integer})
     observed_pdf = pdf(dist, observed_counts)
     permutations_to_consider = multiexponents(length(observed_counts), dist.n)
@@ -46,7 +37,7 @@ function can_use_exact_test(m, n, max_num_samples)
 end
 
 function multinomial_test(dist::Multinomial, observed_counts)
-    threshold = 1e5
+    threshold = 1e3
     m = length(observed_counts)
     n = dist.n
 
@@ -61,20 +52,11 @@ struct FeatureResult
     feature::Feature
     observed_counts::Vector{Float64}
     expected_frequencies::Vector{Float64}
-    divergence::Float64
+    p_value::Float64
 
     function FeatureResult(feature::Feature, observed, expected)
-        # p = 1.0
-        # if length(observed) > 1
-        #     adjusted_expectation = copy(expected)
-        #     adjusted_expectation .+= 1e-2
-        #     normalize!(adjusted_expectation, 1)
-        #     p = pvalue(ChisqTest(observed, adjusted_expectation))
-        # end
         new(feature, observed, expected,
-            -multinomial_test(Multinomial(sum(observed), expected), observed))
-            # js_divergence(observed, expected))
-                # -pdf(Multinomial(sum(observed), expected), observed))
+            multinomial_test(Multinomial(sum(observed), expected), observed))
     end
 end
 
@@ -85,26 +67,15 @@ description(r::FeatureResult) = r.feature.description
 
 all_identical(r::FeatureResult) = count(!iszero, observed_counts(r)) == 1
 
-# function histogram_median(frequencies)::Int
-#     @assert sum(frequencies) ≈ 1
-#     cumulative_frequency = zero(eltype(frequencies))
-#     for (i, individual_frequency) in enumerate(frequencies)
-#         cumulative_frequency += individual_frequency
-#         if cumulative_frequency >= 0.5
-#             return i
-#         end
-#     end
-# end
-
 function all_unusual(r::FeatureResult)
     _, mode_index = findmax(expected_frequencies(r))
     observed_counts(r)[mode_index] == 0
 end
 
-divergence(r::FeatureResult) = r.divergence
+p_value(r::FeatureResult) = r.p_value
 
 Base.isless(r1::FeatureResult, r2::FeatureResult) =
-    divergence(r1) < divergence(r2)
+    p_value(r1) < p_value(r2)
 
 # Inspired by BenchmarkTools.jl (although our implementation is slightly different)
 function asciihist(bins, height=1)
@@ -113,7 +84,7 @@ function asciihist(bins, height=1)
 end
 
 function Base.show(io::IO, r::FeatureResult)
-    print(io, "FeatureResult(\n\t$(r.feature.description), KL=$(@sprintf("%.2g", divergence(r))),\n\tobs: $(asciihist(observed_counts(r))),\n\texp: $(asciihist(expected_frequencies(r))))")
+    print(io, "FeatureResult(\n\t$(r.feature.description), p=$(@sprintf("%.2g", p_value(r))),\n\tobs: $(asciihist(observed_counts(r))),\n\texp: $(asciihist(expected_frequencies(r))))")
 end
 
 function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{FeatureResult})
@@ -121,7 +92,7 @@ function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{FeatureRes
         <table>
             <tr>
                 <th>Description</th>
-                <th>Divergence</th>
+                <th>p-value</th>
                 <th>Observed</th>
                 <th>Expected</td>
             </tr>""")
@@ -129,7 +100,7 @@ function Base.show(io::IO, ::MIME"text/html", results::AbstractVector{FeatureRes
         print(io, """
             <tr>
                 <td>$(description(result))</td>
-                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td>$(@sprintf("%.2g", p_value(result)))</td>
                 <td><pre>$(asciihist(observed_counts(result)))</pre></td>
                 <td><pre>$(asciihist(expected_frequencies(result)))</pre></td>
             </tr>""")
@@ -163,7 +134,7 @@ function evaluate(model::Model, samples)
         push!(results, FeatureResult(feature, observed,
             LinearAlgebra.normalize(feature_freq .+ probability_fudge_factor, 1)))
     end
-    sort!(results; rev=true)
+    sort!(results)
     results
 end
 
@@ -186,7 +157,7 @@ function Base.show(io::IO, ::MIME"text/html", report::Report)
             </tr>
             <tr>
                 <th>Description</th>
-                <th>Divergence</th>
+                <th>p-value</th>
                 <th>Observed</th>
                 <th>Expected</td>
             </tr>""")
@@ -194,7 +165,7 @@ function Base.show(io::IO, ::MIME"text/html", report::Report)
         print(io, """
             <tr>
                 <td>$(description(result))</td>
-                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td>$(@sprintf("%.2g", p_value(result)))</td>
                 <td><pre>$(asciihist(observed_counts(result)))</pre></td>
                 <td><pre>$(asciihist(expected_frequencies(result)))</pre></td>
             </tr>""")
@@ -205,7 +176,7 @@ function Base.show(io::IO, ::MIME"text/html", report::Report)
             </tr>
             <tr>
                 <th>Description</th>
-                <th>Divergence</th>
+                <th>p-value</th>
                 <th>Observed</th>
                 <th>Expected</td>
             </tr>""")
@@ -213,7 +184,7 @@ function Base.show(io::IO, ::MIME"text/html", report::Report)
         print(io, """
             <tr>
                 <td>$(description(result))</td>
-                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td>$(@sprintf("%.2g", p_value(result)))</td>
                 <td><pre>$(asciihist(observed_counts(result)))</pre></td>
                 <td><pre>$(asciihist(expected_frequencies(result)))</pre></td>
             </tr>""")
@@ -224,7 +195,7 @@ function Base.show(io::IO, ::MIME"text/html", report::Report)
             </tr>
             <tr>
                 <th>Description</th>
-                <th>Divergence</th>
+                <th>p-value</th>
                 <th>Observed</th>
                 <th>Expected</td>
             </tr>""")
@@ -232,7 +203,7 @@ function Base.show(io::IO, ::MIME"text/html", report::Report)
         print(io, """
             <tr>
                 <td>$(description(result))</td>
-                <td>$(@sprintf("%.2g", divergence(result)))</td>
+                <td>$(@sprintf("%.2g", p_value(result)))</td>
                 <td><pre>$(asciihist(observed_counts(result)))</pre></td>
                 <td><pre>$(asciihist(expected_frequencies(result)))</pre></td>
             </tr>""")
