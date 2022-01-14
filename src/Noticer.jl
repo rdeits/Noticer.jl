@@ -1,7 +1,8 @@
 module Noticer
 
 using Combinatorics: multiexponents
-using IterTools: subsets
+using IterTools: subsets, chain
+using Base.Iterators: cycle
 using DelimitedFiles: readdlm
 using Distributions: Multinomial, pdf
 using LinearAlgebra: LinearAlgebra, normalize!
@@ -19,6 +20,7 @@ export Model,
        description,
        evaluate,
        expected,
+       feature,
        observed
 
 include("tallies.jl")

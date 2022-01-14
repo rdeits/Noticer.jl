@@ -1,15 +1,10 @@
 using Noticer
 using Test
 
-
-function normalize(phrase)
-    replace(lowercase(phrase), r"[^a-z ]" => "")
-end
-
-const words = Set{String}(normalize.(open(readlines, "../data/113809of.fic")))
+const words = Set{String}(Noticer.normalize.(open(readlines, joinpath(@__DIR__, "../data/113809of.fic"))))
 open("/usr/share/dict/words") do f
     for line in readlines(f)
-        push!(words, normalize(line))
+        push!(words, Noticer.normalize(line))
     end
 end
 

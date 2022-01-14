@@ -163,11 +163,23 @@ const ENTIRELY_ELEMENTS_REGEX = Regex("^($(join((parenwrap(s) for s in ELEMENTAL
 const SINGLE_STATE_REGEX = Regex("$(join((parenwrap(s) for s in STATE_ABBREVIATIONS), '|'))")
 const ENTIRELY_STATES_REGEX = Regex("^($(join((parenwrap(s) for s in STATE_ABBREVIATIONS), '|')))*\$")
 
+function has_vowel_pattern(word, pattern)
+    for (char, expect_vowel) in zip(word, cycle(pattern))
+        if expect_vowel && (char ∉ VOWELS)
+            return false
+        elseif !expect_vowel && (char ∉ CONSONANTS)
+            return false
+        end
+    end
+    return true
+end
+
 struct Feature
     f::Function
     description::String
 end
 
+(f::Feature)(word) = f.f(word)
 description(feature::Feature) = feature.description
 
 function all_features()
@@ -231,6 +243,10 @@ function all_features()
             tallies[char - 'a' + 1] > 1
         end
     end)
+
+    push!(features, Feature(w -> has_vowel_pattern(w, (true, false)), "Has vowel/consonant pattern VCVC..."))
+    push!(features, Feature(w -> has_vowel_pattern(w, (false, true)), "Has vowel/consonant pattern CVCV..."))
+    push!(features, Feature(w -> has_vowel_pattern(w, (true, false)) || has_vowel_pattern(w, (false, true)), "Alternates consonant/vowel"))
 
     push!(features, Feature(is_palindrome, "Is a palindrome"))
     push!(features, Feature(is_hill, "Is a hill word"))

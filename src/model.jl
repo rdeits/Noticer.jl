@@ -7,7 +7,7 @@ struct Model
         new(features, Dict(), corpus)
     end
 
-    function Model(features::AbstractVector{Feature}, corpus)
+    function Model(features::AbstractVector{Feature}, corpus=WORDS)
         new(features, Dict(), collect(corpus))
     end
 end
@@ -30,6 +30,6 @@ end
 function frequencies(model::Model, length_range::UnitRange)
     get!(model.frequencies_by_length, length_range) do
         filtered_corpus = PreprocessedWord.(filter(w -> length(w) in length_range, model.corpus))
-        @showprogress [count_frequencies(feature.f, filtered_corpus) for feature in model.features]
+        [count_frequencies(feature.f, filtered_corpus) for feature in model.features]
     end
 end

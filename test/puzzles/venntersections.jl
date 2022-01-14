@@ -4,9 +4,9 @@
 
 @testset "ventersections" begin
     @testset "diagram 1" begin
-        # # Set 1
-        # f1 = first(evaluate(model, ["lowered", "levitate", "inanimate", "paradise", "leveraged", "sizes", "tuxedo"]))
-        # @test f1.description == "alternates consonant vowel"
+        # Set 1
+        f1 = first(evaluate(model, ["lowered", "levitate", "inanimate", "paradise", "leveraged", "sizes", "tuxedo"]))
+        @test description(f1) == "Alternates consonant/vowel"
 
         # Set 2
         f2 = first(filter(all_identical, evaluate(model, ["leveraged", "sizes", "tuxedo", "lynx", "lightly", "crocodile", "triumph"])))
@@ -20,15 +20,13 @@
         f4 = first(filter(all_identical, evaluate(model, ["levitate", "inanimate", "sizes", "lightly", "crocodile", "legislator", "carousels"])))
         @test description(f4) == "Number of repeated consonants"
 
-        # # Intersection
-        # checks = (f1, f2, f3, f4, word -> length(word) == 9)
-        # for word in words
-        #     if all(c(word) for c in checks)
-        #         @test word == "lakesides"
-        #         break
-        #     end
-        # end
-
+        # Intersection
+        c1, c2, c3, c4 = feature.((f1, f2, f3, f4))
+        function check(word)
+            c1(word) == 1 && c2(word) == c2("leveraged") && c3(word) == c3("lowered") && c4(word) == c4("levitate") && length(word) == 9
+        end
+        intersections = filter(check, model.corpus)
+        @test length(intersections) < 10 && "lakesides" in intersections
     end
 
     @testset "diagram 2" begin

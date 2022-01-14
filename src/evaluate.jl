@@ -60,7 +60,7 @@ struct FeatureResult
     end
 end
 
-
+feature(r::FeatureResult) = r.feature
 observed_counts(r::FeatureResult) = vec(r.observed_counts)
 expected_frequencies(r::FeatureResult) = vec(r.expected_frequencies)
 description(r::FeatureResult) = r.feature.description
@@ -144,7 +144,7 @@ struct Report
     unusual_matches::Vector{FeatureResult}
 
     function Report(results::AbstractVector{FeatureResult})
-        sort!(results; rev=true)
+        sort!(results)
         new(results, filter(all_identical, results), filter(all_unusual, results))
     end
 end
