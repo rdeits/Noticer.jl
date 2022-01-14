@@ -2,10 +2,11 @@ using Pkg
 Pkg.activate(@__DIR__)
 Pkg.instantiate()
 
+using ArgParse
 using HTTP: queryparams
 using Mux: Mux, @app, page, serve
 using Noticer: Model, all_features, evaluate, Report
-using Sockets: @ip_str
+using Sockets: @ip_str, IPv4
 
 module Templates
 
@@ -149,7 +150,18 @@ function handle_home(request)
     )
 end
 
-function main(; host=ip"127.0.0.1", port=8000)
+function main()
+    settings = ArgParseSettings()
+    @add_arg_table settings begin
+        "--host"
+            default="127.0.0.1"
+        "--port"
+            default="8000"
+    end
+    parsed_args = parse_args(ARGS, settings)
+    host = parsed_args["host"]
+    port = parse(Int, parsed_args["port"])
+
     @info "Serving at $host:$port"
     @app server = (
         Mux.stack(Mux.todict, Mux.basiccatch, Mux.splitquery, Mux.toresponse),
